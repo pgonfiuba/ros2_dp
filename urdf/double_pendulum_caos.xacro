@@ -1,0 +1,192 @@
+<?xml version="1.0"?>
+<robot name="double_pendulum" xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+  <!-- Parámetros del eslabón 0. Cilindro y centro de masa en el centro -->
+  <xacro:property name="mass0" value="1.5"/>
+  <xacro:property name="radius0" value="0.05"/> <!-- largo total -->
+  <xacro:property name="height0" value="0.04"/>
+  <!-- Inercia para orientación: alto sobre el eje Z -->
+  <!-- Inercia del cilindro, eje Z a lo largo de la altura -->
+  <xacro:property name="ixx0" value="${(1.0/12.0) * mass0 * (3 * radius0 * radius0 + height0 * height0)}"/>
+  <xacro:property name="iyy0" value="${ixx0}"/>
+  <xacro:property name="izz0" value="${0.5 * mass0 * radius0 * radius0}"/>
+  
+  <!-- Parámetros del eslabón 1. Prisma de sección cuadrada y centro de masa en el centro -->
+  <xacro:property name="q1_ini" value="1.55"/>                     <!-- posición inicial del eje -->  
+  <xacro:property name="mass1" value="1.5"/>                    <!-- masa de la barra que modela el eslabón -->
+  <xacro:property name="length1" value="0.22"/>                 <!-- largo total -->
+  <xacro:property name="width1" value="0.02"/>                  <!-- ancho de la sección total -->
+  <xacro:property name="a1" value="${length1 - width1}"/>       <!-- distancia entre ejes -->  
+  <xacro:property name="damping1" value="0.0000001"/>                 <!-- rozamiento viscoso -->  
+  <xacro:property name="friction1" value="0.0000001"/>                <!-- rozamiento de Coulomb -->  
+  <!-- Calculo de la inercia de una barra (con motor en eje de rotación) para orientación a lo largo del eje X -->   
+  <xacro:property name="ixx1" value="${(1.0/6.0) * mass1 * (width1 * width1)}"/>
+  <xacro:property name="izz1" value="${(1.0/12.0) * mass1 * (length1 * length1 + width1 * width1) }"/>
+  <xacro:property name="iyy1" value="${izz1}"/>        
+
+  <!-- Parámetros del eslabón 2. Prisma de sección cuadrada y centro de masa en el centro -->
+  <xacro:property name="q2_ini" value="0"/>                     <!-- posición inicial del eje -->  
+  <xacro:property name="mass2" value="1"/>                    <!-- masa de la barra que modela el eslabón -->
+  <xacro:property name="length2" value="0.22"/>                 <!-- largo total -->
+  <xacro:property name="width2" value="0.02"/>                  <!-- ancho de la sección total -->
+  <xacro:property name="a2" value="${length2 - width2}"/>       <!-- distancia entre ejes -->
+  <xacro:property name="damping2" value="0.0000001"/>                 <!-- rozamiento viscoso -->  
+  <xacro:property name="friction2" value="0.0000001"/>                <!-- rozamiento de Coulomb -->  
+  <!-- Calculo de la inercia de una barra (con motor en eje de rotación) para orientación a lo largo del eje X -->
+  <xacro:property name="ixx2" value="${(1.0/6.0) * mass2 * (width2 * width2)}"/>
+  <xacro:property name="izz2" value="${(1.0/12.0) * mass2 * (length2 * length2 + width2 * width2)}"/> 
+  <xacro:property name="iyy2" value="${izz2}"/>        
+  
+  <!--******************* DEFINICIONES DE ESLABONES  *******************-->
+  <!-- World link -->
+  <link name="world"/>
+
+  <!-- Link base (fijo) -->
+  <!-- La terna 0 está centrada en la base del cilindro con el Z para arriba  -->
+  <link name="base_link">
+      <inertial>          
+        <origin xyz="0 0 ${height0/2.0}"/>
+        <mass value="${mass0}"/>
+        <inertia ixx="${ixx0}" ixy="0.0" ixz="0.0" iyy="${iyy0}" iyz="0.0" izz="${izz0}"/>
+      </inertial>
+      <visual>
+          <origin xyz="0 0 ${height0/2.0}"/>
+          <geometry>
+              <cylinder radius="${radius0}" length="${height0}"/>
+          </geometry>
+          <material name="green">
+              <color rgba="0 1 0 1"/>
+          </material>
+      </visual>
+      <collision>
+          <origin xyz="0 0 ${height0/2.0}"/>
+          <geometry>
+              <cylinder radius="${radius0}" length="${height0}"/>
+          </geometry>
+      </collision>
+  </link>
+  
+  <!-- Primer eslabón -->
+  <!-- La terna 1 está en la entrada del eslabón => DH proximal  -->
+  <link name="link1">
+      <inertial>
+        <origin xyz="${a1/2.0} 0 0"/>
+        <mass value="${mass1}"/>
+        <inertia ixx="${ixx1}" ixy="0.0" ixz="0.0" iyy="${iyy1}" iyz="0.0" izz="${izz1}"/>
+      </inertial>
+      <visual>
+          <origin xyz="${a1/2.0} 0 0"/>
+          <geometry>
+              <box size="${length1} ${width1} ${width1}"/>
+          </geometry>
+          <material name="blue">
+              <color rgba="0 0 1 1"/>
+          </material>
+      </visual>
+      <collision>
+          <origin xyz="${a1/2.0} 0 0"/>
+          <geometry>
+              <box size="${length1} ${width1} ${width1}"/>
+          </geometry>
+      </collision>
+  </link>
+
+  <!-- Segundo eslabón -->
+  <!-- La terna 2 está en la entrada del eslabón => DH proximal  -->
+  <link name="link2">
+      <inertial>
+          <origin xyz="${a2/2.0} 0 0"/>
+          <mass value="${mass2}"/>
+          <inertia ixx="${ixx2}" ixy="0.0" ixz="0.0" iyy="${iyy2}" iyz="0.0" izz="${izz2}"/>
+      </inertial>
+      <visual>
+          <origin xyz="${a2/2.0} 0 0"/>
+          <geometry>
+              <box size="${length2} ${width2} ${width2}"/>
+          </geometry>
+          <material name="red">
+              <color rgba="1 0 0 1"/>
+          </material>
+      </visual>
+      <collision>
+          <origin xyz="${a2/2.0} 0 0"/>
+          <geometry>
+              <box size="${length2} ${width2} ${width2}"/>
+          </geometry>
+      </collision>
+  </link>
+  
+  <!--******************* DEFINICIONES DE JUNTAS  *******************-->
+  <!-- Junta fija entre world y base_link -->
+  <joint name="fixed" type="fixed">
+      <parent link="world"/>
+      <child link="base_link"/>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+  </joint>
+  
+  <!-- Junta entre base y link1 -->
+  <joint name="joint1" type="revolute">
+      <parent link="base_link"/>
+      <child link="link1"/>
+      <origin xyz="0 0 ${height0+width1/2.0}" rpy="0 0 0"/>
+      <axis xyz="0 0 1"/>
+      <limit effort="100" lower="-3140" upper="3140" velocity="5"/>
+      <dynamics damping="${damping1}" friction="${friction1}"/>
+  </joint>
+  
+  <!-- Junta entre link1 y link2 -->
+  <joint name="joint2" type="revolute">
+      <parent link="link1"/>
+      <child link="link2"/>
+      <origin xyz="${a1} 0 ${width1}" rpy="0 0 0"/>
+      <axis xyz="0 0 1"/>
+      <limit effort="100" lower="-3140" upper="3140" velocity="5"/>
+      <dynamics damping="${damping2}" friction="${friction2}"/>
+  </joint>
+
+  <!--******************* DEFINICIONES DE HERRAMIENTA  *******************-->
+  <!-- Terna TOOL0 en el extremo de link2 -->
+  <joint name="tool0_joint" type="fixed">
+    <parent link="link2"/>
+    <child link="tool0"/>
+    <origin xyz="${a2} 0 0" rpy="0 0 0"/>
+  </joint>
+
+  <link name="tool0"/>
+  
+  <!--******************* CONFIGURACION DE ros2_control *******************-->
+  <ros2_control name="GazeboSystem" type="system">
+    <hardware>
+      <plugin>gz_ros2_control/GazeboSimSystem</plugin>
+    </hardware>
+    <joint name="joint1">
+      <command_interface name="position"/>
+      <command_interface name="effort"/>
+      <state_interface name="position">
+        <param name="initial_value">${q1_ini}</param>
+      </state_interface>
+      <state_interface name="velocity"/>
+      <state_interface name="effort"/>
+    </joint>
+
+    <joint name="joint2">
+      <command_interface name="position"/>
+      <command_interface name="effort"/>
+      <state_interface name="position">
+        <param name="initial_value">${q2_ini}</param>
+      </state_interface>
+      <state_interface name="velocity"/>
+      <state_interface name="effort"/>
+    </joint>
+  </ros2_control>
+
+  <!-- ros_control plugin -->
+  <gazebo>
+    <plugin filename="gz_ros2_control-system" name="gz_ros2_control::GazeboSimROS2ControlPlugin">
+      <parameters>$(find dp)/config/ros2_controllers.yaml</parameters>
+      <robot_param>robot_description</robot_param>
+      <robot_param_node>robot_state_publisher</robot_param_node>
+    </plugin>
+  </gazebo>
+</robot>
+
