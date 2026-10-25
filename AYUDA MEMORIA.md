@@ -217,29 +217,29 @@ Permite visualizar y comparar la evolución temporal de los tópicos publicados 
 
 Parámetros críticos medidos:
 
-\[
+$$
 K_u = 120,\qquad T_u = 0.150\ \text{s}
-\]
+$$
 
 Para un PID clásico, las reglas de Ziegler–Nichols en lazo cerrado dan:
 
-\[
+$$
 K_p = 0.6K_u
-\]
+$$
 
-\[
+$$
 K_i = \frac{1.2K_u}{T_u}
-\]
+$$
 
-\[
+$$
 K_d = 0.075K_uT_u
-\]
+$$
 
 Con los valores medidos:
 
-\[
+$$
 K_p = 72,\qquad K_i = 960,\qquad K_d = 1.35
-\]
+$$
 
 ### Eje 2
 
@@ -251,8 +251,8 @@ $$
 
 Aplicando las mismas reglas:
 
-\[
+$$
 K_p = 54,\qquad K_i = 1800,\qquad K_d = 0.405
-\]
+$$
 
 > Estos valores son una estimación inicial, no una garantía de estabilidad ni de buen desempeño. Conviene verificarlos en simulación y comprobar cómo interpreta el controlador las ganancias `p`, `i` y `d`. Las fórmulas anteriores corresponden a la forma PID paralela, con \(K_i\) y \(K_d\) expresados directamente.
