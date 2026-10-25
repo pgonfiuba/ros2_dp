@@ -1,126 +1,197 @@
 # Simulación de la dinámica y el control de un doble péndulo
 
-## Pre requisitos
+Este repositorio contiene modelos y simulaciones de un doble péndulo utilizando ROS 2, Gazebo y herramientas de visualización y control.
 
-Este entorno de simulación debería funcionar en cualquier versión de Ubuntu posterior a 20.04.
+## Prerrequisitos
 
-El uso de Ubuntu no es obligatorio, cualquier entorno que pueda compartir el acceso a la placa de video debería funcionar.
-Sin embargo debido a las complejidades que involucra es altamente recomendado utilizar dicha distribución.
+El entorno está preparado para Ubuntu 24.04 con ROS 2 Jazzy dentro de Docker. También puede funcionar en otras distribuciones Linux compatibles con Docker y con acceso a la interfaz gráfica del sistema anfitrión.
 
-### Instalar docker
-```
+Se recomienda utilizar Ubuntu para simplificar la configuración de Docker y de las aplicaciones gráficas.
+
+### Instalar Docker
+
+Instalar Docker Engine:
+
+```bash
+sudo apt update
 sudo apt install curl
-curl -sSL https://get.docker.com/ | sh
-sudo usermod -aG docker $(whoami)
+curl -fsSL https://get.docker.com | sudo sh
+sudo usermod -aG docker "$USER"
 ```
 
-Cualquier consulta: https://docs.docker.com/get-started/get-docker/
+Cerrar la sesión y volver a iniciarla para aplicar el cambio de grupo.
 
-Es importante asegurarse que el sistema tiene el plugin para `docker compose`.
-https://docs.docker.com/compose/install/linux/
+Documentación oficial: https://docs.docker.com/get-started/get-docker/
 
-```
- sudo apt-get update
- sudo apt-get install docker-compose-plugin
+Instalar el complemento Docker Compose si todavía no está disponible:
+
+```bash
+sudo apt update
+sudo apt install docker-compose-plugin
 ```
 
-## Para configurar el espacio:
-```
+Documentación: https://docs.docker.com/compose/install/linux/
+
+## Descargar el repositorio
+
+```bash
 git clone https://github.com/pgonfiuba/ros2_dp.git
-cd ros2_dp/docker
-docker compose build
+cd ros2_dp
 ```
 
-## Para ejecutar una de las simulaciones:
+El entorno de ROS 2 se distribuye como una imagen Docker preconstruida, alojada en GitHub Container Registry (GHCR). No es necesario construir la imagen para utilizar las simulaciones.
 
-Existen varias simulaciones. Levantando el contenedor con la opción dp se accede a una simulación del control del doble péndulo que permite cambiar setpoints y ganancias.
-La evolución temporal de las variables se pueden configurar en plotjuggler cargando el tópico correspondiente. 
+## Iniciar el entorno
 
-```
-$ xhost + && docker compose up dp --force-recreate
-```
+Desde el directorio `docker`:
 
-Deberia inmediatamente inicializar la simulacion con el panel de control de RViz, Gazebo, PlotJuggler y una gui para cambiar parámetros, como se ve:
-
-![](dp_RViz.png)
-
-
-## Como usar este repositorio para desarrollo:
-
-Reconstruimos la imagen e inicializamos una nueva:
-```
-$ docker compose build --no-cache
-$ xhost + && docker compose up dp_dev --force-recreate
+```bash
+cd docker
+docker compose up 
 ```
 
-En este caso no se levanta ros2, por lo que se debe hacer manualmente desde una segunda consola, con la opción de levantar otras simulaciones tales como el péndulo doble corriendo sobre un escritorio sin estar fijo en su base.
+La primera vez, Docker descargará la imagen si todavía no está disponible localmente. En ejecuciones posteriores reutilizará la imagen descargada.
 
-En una terminal separada nos introducimos en el container.
-```
-$ docker exec -it docker-dp_dev-1 /bin/bash
-```
+El contenedor permanece en ejecución en segundo plano. No inicia automáticamente las simulaciones ni compila el workspace.
 
-Luego adentro no olvidar de sourcear
-```
-$ source /entrypoint.sh
+Para abrir una terminal dentro del contenedor:
+
+```bash
+docker compose exec ros2_dp bash
 ```
 
-En esta forma, cualquier cambio en la carpeta `./src/dp` se reflejan en la carpeta `/root/ros2_ws/src/dp` adentro de la contenedor.
-Asi podemos hacer cualquier cambio  dentro de esa carpeta y ejecutarlos  en el sistema con el comando desde la segunda terminal.
+Los comandos siguientes se ejecutan dentro de esa terminal.
+
+### Preparar el workspace
+
+Al iniciar una terminal dentro del contenedor, el `entrypoint` carga automáticamente el entorno de ROS 2 y, si existe, el workspace compilado.
+
+Para compilar los paquetes por primera vez, ejecutar:
+
+```bash
+cd /root/ros2_ws
+colcon build --symlink-install
+```
+
+Una vez finalizada la compilación, cargar el workspace actualizado manualmente:
+
+```bash
+source install/setup.bash
+```
+
+El directorio `src` del repositorio está montado dentro del contenedor. Por lo tanto, los cambios realizados en el código desde el sistema anfitrión se reflejan inmediatamente en `/root/ros2_ws/src`. Cuando se modifica el código fuente, puede ser necesario volver a compilar los paquetes afectados y cargar nuevamente el workspace para utilizar las modificaciones.
+
 
 ## Simulación de péndulo doble con control PID
-Es la simulación por defecto en el servicio dp. Para mayor control se entrar por consola mediante el servicio dp-dev y luego se corre:
 
-```
-$ ros2 launch dp dp_sim.launch.py 
-```
+Es la simulación de control en lazo cerrado. Para iniciarla, desde una terminal dentro del contenedor:
 
-Si se desea ver la evolución temporal de las variables desde otra consola se puede correr:
-
-```
-$ ros2 run plotjuggler plotjuggler
+```bash
+ros2 launch dp dp_sim.launch.py
 ```
 
-## Modificación de ganancias dinámicamente
+La simulación permite observar el comportamiento del doble péndulo y sus controladores mediante Gazebo y RViz.
 
-Es posible correr una aplicación gráfica para modificar las ganancias de los controladores PID de los position_controllers.
-Con la simulación corriendo en lazo cerrado, se abre una consola al contenedor y se ejecuta la aplicación 
+![Simulación del doble péndulo en RViz](dp_RViz.png)
 
-```
-$ ros2 run dp gui_controller.py
-```
+### Visualización con PlotJuggler
 
-Modificando las ganancias y enviándolas al controlador se puede alterar el comportamiento del doble péndulo que se puede observar en RViz y la posición de los ejes con plotjuggler.
+Para observar la evolución temporal de las variables, abrir otra terminal en el contenedor:
 
-## Simulación de péndulo doble a lazo abierto
-Se puede lanzar una simulación con el control de lazo cerrado desactivado e ingresar con torques en los ejes mediante el siguiente comando.
-
-```
-$ ros2 launch dp dp_sim.launch.py closed_loop:=false
+```bash
+docker compose exec ros2_dp bash
 ```
 
-Adicionalmente se puede correr la definición del robot que viene sin conexión a motores, sin rozamiento y sin límites de posición, velocidad y torque en los ejes. Esto permite reproducir un movimiento caótico.
+Dentro ejecutar PlotJuggler:
 
-```
-$ ros2 launch dp dp_sim.launch.py closed_loop:=false xacro_file:=dp_caos.xacro
-```
-
-## Simulación del péndulo suelto
-Adicionalmente se puede configurar la simulación para que el péndulo esté libre; es decir que su base no esté fijada al mundo.
-La idea de esta simulación es ver el potencial de Gazebo, ya que no se limita a calcular la evolución del doble péndulo sino que el enfoque para resolver la dinámica es integral.
-
-Como adicional, se puede importar un mundo con un escritorio de manera que el péndulo quede apoyado arriba del mismo. Cuando se acciona el robot golpea al escritorio y este se mueve.
-
-```
-$ ros2 launch dp dp_sim.launch.py closed_loop:=false xacro_file:=dp_loose.xacro world_name:=dp_escritorio.world
+```bash
+ros2 run plotjuggler plotjuggler
 ```
 
-## Estructura de la definición de robots
+En PlotJuggler se pueden seleccionar los tópicos publicados por la simulación para visualizar las señales de interés.
 
-Los parámetros cinemáticos y dinámicos del mecanismo y los actuadores están definidos en dp_params.xacro
+## Modificación dinámica de las ganancias
 
-Luego dp_base.xacro importa los parámetros para definir el robot junto con los controladores de posición. Además deja configurada una interfase para entrar con torques en los ejes (útil para la simulación de lazo abierto)
+Es posible modificar las ganancias de los controladores PID de los `position_controllers` durante la simulación.
 
-dp_caos.xacro redefine los valores de los rozamiento y los topes de los ejes.
+Con la simulación en lazo cerrado en ejecución, abrir otra terminal dentro del contenedor y ejecutar la aplicación gráfica:
 
-dp_loose.xacro libera al robot de la junta fija a world. Esto podría ser útil para un robót móvil aunque, pero no para un manipulador.
+```bash
+ros2 run dp gui_controller.py
+```
+
+La aplicación permite modificar las ganancias y enviarlas al controlador. El efecto de los cambios puede observarse en RViz y mediante las señales registradas en PlotJuggler.
+
+## Simulación del péndulo doble a lazo abierto
+
+Para desactivar el control en lazo cerrado y permitir la aplicación de torques sobre los ejes:
+
+```bash
+ros2 launch dp dp_sim.launch.py closed_loop:=false
+```
+
+También se puede utilizar una definición del robot sin conexión a motores, sin rozamiento y sin límites de posición, velocidad y torque en los ejes. Esto permite observar comportamientos caóticos:
+
+```bash
+ros2 launch dp dp_sim.launch.py closed_loop:=false xacro_file:=dp_caos.xacro
+```
+
+## Simulación del péndulo libre
+
+Es posible liberar el péndulo de la junta que fija su base al mundo. Esta configuración permite estudiar el movimiento del mecanismo sin una base inmóvil.
+
+También se puede importar un mundo con un escritorio, de manera que el péndulo quede apoyado sobre él. Al accionar el mecanismo, este puede golpear el escritorio y provocar su movimiento.
+
+```bash
+ros2 launch dp dp_sim.launch.py closed_loop:=false xacro_file:=dp_loose.xacro world_name:=dp_escritorio.world
+```
+
+## Estructura de las definiciones del robot
+
+Los principales archivos Xacro son:
+
+- `dp_params.xacro`: define los parámetros cinemáticos y dinámicos del mecanismo y sus actuadores.
+- `dp_base.xacro`: utiliza los parámetros anteriores para definir el robot y sus controladores de posición. También configura una interfaz para aplicar torques directamente a los ejes, útil para las simulaciones en lazo abierto.
+- `dp_caos.xacro`: modifica los valores de rozamiento y los límites de los ejes para estudiar comportamientos caóticos.
+- `dp_loose.xacro`: libera el robot de la junta fija al mundo. Esta configuración permite estudiar la interacción del mecanismo con su entorno.
+
+## Actualizar la imagen Docker
+
+La imagen se actualiza cuando se publica una nueva versión en GHCR. Para descargar explícitamente esa versión:
+
+```bash
+docker compose pull
+```
+
+Luego, recrear el contenedor:
+
+```bash
+docker compose up -d --force-recreate
+```
+
+No es necesario construir la imagen localmente para utilizar una versión publicada.
+
+## Detener el entorno
+
+Desde el directorio `docker` del repositorio:
+
+```bash
+docker compose down
+```
+
+Este comando detiene y elimina el contenedor, pero conserva la imagen descargada y los archivos del repositorio en el sistema anfitrión.
+
+## Desarrollo
+
+Para modificar los paquetes ROS 2, editar los archivos dentro de `src` desde el sistema anfitrión.
+
+Después de realizar cambios en el código, entrar al contenedor, cargar el entorno de ROS 2 y recompilar cuando sea necesario:
+
+```bash
+cd /root/ros2_ws
+colcon build
+source install/setup.bash
+```
+
+Las modificaciones del código fuente no requieren reconstruir la imagen Docker. La imagen solo necesita actualizarse cuando cambian las dependencias del sistema, los paquetes instalados o la configuración del entorno.
+

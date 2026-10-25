@@ -1,39 +1,30 @@
+
 services:
-  ros2-desktop:
-    image: humble-ros-desktop:overlay
-    build:
+  ros2_dp:
+    image: ghcr.io/pgonfiuba/ros2-clases:jazzy
+
+    build:                             
       context: ../
       dockerfile: ./docker/Dockerfile
       args:
         ROS_DISTRO: jazzy
       target: base
+
     stdin_open: true
     tty: true
+
+    command: "/bin/bash"
+
     network_mode: host
     ipc: host
-    privileged: true
+
     environment:
-       - ROS_DOMAIN_ID=42
-       - DISPLAY=$DISPLAY
+      - ROS_DOMAIN_ID=42
+      - DISPLAY=${DISPLAY}
+
     devices:
-      - "/dev/dri/:/dev/dri/"
+      - "/dev/dri:/dev/dri"
+
     volumes:
       - $HOME/.Xauthority:/root/.Xauthority:ro
-  dp:
-    extends: ros2-desktop
-    image: humble-ros-desktop:base
-    environment:
-        - ROBOT_MODEL=dp
-    command: /root/ros2_ws/src/dp/scripts/dp_bringup.sh    
-    volumes:
-      - ~/Documentos:/root/Documentos
-  dp_dev:
-    extends: ros2-desktop
-    image: humble-ros-desktop:base
-    environment:
-        - ROBOT_MODEL=dp
-    command: bash -c "source /entrypoint.sh; exec bash" 
-    volumes:
-      - ../src/dp:/root/ros2_ws/src/dp
-      
- 
+      - ../src:/root/ros2_ws/src
