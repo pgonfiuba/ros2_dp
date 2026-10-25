@@ -245,9 +245,9 @@ K_p = 72,\qquad K_i = 960,\qquad K_d = 1.35
 
 Parámetros críticos medidos:
 
-\[
+$$
 K_u = 90,\qquad T_u = 0.060\ \text{s}
-\]
+$$
 
 Aplicando las mismas reglas:
 
